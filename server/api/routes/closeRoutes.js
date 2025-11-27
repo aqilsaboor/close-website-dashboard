@@ -22,6 +22,30 @@ const closeAPIRequest = async (endpoint, params = {}) => {
   }
 };
 
+// Fetch ALL records with auto pagination
+const fetchAllCloseRecords = async (endpoint, limit = 200) => {
+  let allData = [];
+  let skip = 0;
+  let hasMore = true;
+
+  while (hasMore) {
+    const response = await closeAPIRequest(endpoint, {
+      _limit: limit,
+      _skip: skip,
+    });
+
+    if (!response?.data?.length) break;
+
+    allData.push(...response.data);
+
+    skip += limit;
+    hasMore = response.data.length === limit; // if less, last page reached
+  }
+
+  return allData;
+};
+
+
 
 router.get('/dashboard-data', async (req, res) => {
   try {
@@ -45,12 +69,14 @@ router.get('/dashboard-data', async (req, res) => {
 
 router.get('/total-leads', async (req, res) => {
   try {
-    const leads = await closeAPIRequest('/lead/', { _limit: 100 }); // max 200
+    const allLeads = await fetchAllCloseRecords('/lead/', 200);
+
     return res.json({
       success: true,
-      totalLeads: leads.data.length,
-      data: leads.data // optional, can remove if just count needed
+      totalLeads: allLeads.length,
+      data: allLeads, // remove later if only count needed
     });
+
   } catch (error) {
     return res.status(500).json({
       success: false,
@@ -59,6 +85,7 @@ router.get('/total-leads', async (req, res) => {
     });
   }
 });
+
 
 router.get('/appointments', async (req, res) => {
   try {
