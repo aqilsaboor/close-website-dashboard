@@ -45,7 +45,21 @@ const fetchAllCloseRecords = async (endpoint, limit = 200) => {
   return allData;
 };
 
+router.get("/locations", async (req, res) => {
+  try {
+    const pipelines = await fetchAllCloseRecords("/pipeline/");
+    // Use a valid field; Close pipelines include 'name'
+    const locations = pipelines
+      .map(p => p.name)        // <-- use 'name' or your actual location field
+      .filter(Boolean);
 
+    const uniqueLocations = [...new Set(locations)];
+    res.json({ success: true, locations: uniqueLocations });
+  } catch (error) {
+    console.error("Error fetching pipeline locations:", error.message);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
 
 router.get('/dashboard-data', async (req, res) => {
   try {

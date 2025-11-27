@@ -65,39 +65,41 @@ const Dashboard = () => {
   const [selectedFunnelType, setSelectedFunnelType] = useState("All");
 
   const fetchData = async () => {
-  setLoading(true);
+    setLoading(true);
 
-  try {
-    const [leadsRes, appointmentsRes, membershipsRes, breakdownRes] =
-      await Promise.all([
-        fetch(`${API_BASE_URL}/total-leads`).then(r => r.json()),
-        fetch(`${API_BASE_URL}/appointments`).then(r => r.json()),
-        fetch(`${API_BASE_URL}/memberships-closed`).then(r => r.json()),
-        fetch(`${API_BASE_URL}/membership-breakdown`).then(r => r.json()),
-      ]);
+    try {
+      const [leadsRes, appointmentsRes, membershipsRes, breakdownRes, locationsRes] =
+        await Promise.all([
+          fetch(`${API_BASE_URL}/total-leads`).then(r => r.json()),
+          fetch(`${API_BASE_URL}/appointments`).then(r => r.json()),
+          fetch(`${API_BASE_URL}/memberships-closed`).then(r => r.json()),
+          fetch(`${API_BASE_URL}/membership-breakdown`).then(r => r.json()),
+          fetch(`${API_BASE_URL}/locations`).then(r => r.json()),
+        ]);
 
-    const dashboardData: DashboardData = {
-      totals: {
-        totalLeads: leadsRes.success ? leadsRes.totalLeads : 0,
-        appointmentsBooked: appointmentsRes.success ? appointmentsRes.appointmentsBooked : 0,
-        membershipsClosed: membershipsRes.success ? membershipsRes.membershipsClosed : 0,
-        insuranceOnly: 0, // optional or compute separately
-      },
-      membershipBreakdown: breakdownRes.success ? breakdownRes.breakdown : [],
-      filters: {
-        locations: [], // optional, can fetch later
-        leadSources: [], 
-        funnelTypes: [],
-      },
-    };
+      const dashboardData: DashboardData = {
+        totals: {
+          totalLeads: leadsRes.success ? leadsRes.totalLeads : 0,
+          appointmentsBooked: appointmentsRes.success ? appointmentsRes.appointmentsBooked : 0,
+          membershipsClosed: membershipsRes.success ? membershipsRes.membershipsClosed : 0,
+          insuranceOnly: 0,
+        },
+        membershipBreakdown: breakdownRes.success ? breakdownRes.breakdown : [],
+        filters: {
+          locations: locationsRes.success ? locationsRes.locations : [],
+          leadSources: [],
+          funnelTypes: [],
+        },
+      };
 
-    setData(dashboardData);
-  } catch (err) {
-    console.error("Dashboard fetch error:", err);
-  }
+      setData(dashboardData);
+    } catch (err) {
+      console.error("Dashboard fetch error:", err);
+    }
 
-  setLoading(false);
-};
+    setLoading(false);
+  };
+
 
 
   useEffect(() => {
@@ -136,7 +138,7 @@ const Dashboard = () => {
       <Card>
         <CardContent className="pt-6 flex flex-wrap gap-4">
           {/* Location */}
-          <Select onValueChange={setSelectedLocation}>
+          <Select value={selectedLocation} onValueChange={setSelectedLocation}>
             <SelectTrigger className="w-[200px] border-gray-300">
               <SelectValue placeholder="Location" />
             </SelectTrigger>
@@ -147,6 +149,7 @@ const Dashboard = () => {
               ))}
             </SelectContent>
           </Select>
+
 
           {/* Lead Source */}
           <Select onValueChange={setSelectedLeadSource}>
@@ -201,7 +204,7 @@ const Dashboard = () => {
 
       {/* Membership Breakdown (Pie + Bar) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        
+
         {/* Pie Chart */}
         <Card>
           <CardHeader>
