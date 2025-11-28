@@ -83,14 +83,37 @@ router.get('/dashboard-data', async (req, res) => {
 
 router.get('/total-leads', async (req, res) => {
   try {
-    const { location } = req.query;
+    const { location, leadSource, funnelType } = req.query;
     const allLeads = await fetchAllCloseRecords('/lead/', 200);
     let filteredLeads = allLeads;
 
+    // Filter by location (pipeline_name)
     if (location && location !== "All") {
-      filteredLeads = allLeads.filter(lead =>
+      filteredLeads = filteredLeads.filter(lead =>
         lead?.opportunities?.some(op =>
           op?.pipeline_name?.toLowerCase() === location.toLowerCase()
+        )
+      );
+    }
+
+    // Filter by leadSource
+    if (leadSource && leadSource !== "All") {
+      filteredLeads = filteredLeads.filter(lead =>
+        lead?.opportunities?.some(op =>
+          (op["custom.cf_IlDxYq6z1N5djnZtgsAxWRHuNIKzd10fe1t3fDAMiPX"] || "")
+            .trim()
+            .toLowerCase() === leadSource.trim().toLowerCase()
+        )
+      );
+    }
+
+    // Filter by funnel type
+    if (funnelType && funnelType !== "All") {
+      filteredLeads = filteredLeads.filter(lead =>
+        lead?.opportunities?.some(op =>
+          (op["custom.cf_lHXCz96zGWThc3ojIl0Wcld64fJv7tnzkHSnTmALQPq"] || "")
+            .trim()
+            .toLowerCase() === funnelType.trim().toLowerCase()
         )
       );
     }
@@ -139,7 +162,6 @@ router.get('/memberships-closed', async (req, res) => {
     });
     let filteredMemberships = memberships.data;
 
-    // Filter by pipeline_name if location is passed
     if (location && location !== "All") {
       filteredMemberships = filteredMemberships.filter(
         opp => opp?.pipeline_name?.toLowerCase() === location.toLowerCase()
