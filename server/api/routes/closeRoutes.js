@@ -83,12 +83,21 @@ router.get('/dashboard-data', async (req, res) => {
 
 router.get('/total-leads', async (req, res) => {
   try {
+    const { location } = req.query;
     const allLeads = await fetchAllCloseRecords('/lead/', 200);
+    let filteredLeads = allLeads;
+
+    if (location && location !== "All") {
+      filteredLeads = allLeads.filter(lead =>
+        lead?.opportunities?.some(op =>
+          op?.pipeline_name?.toLowerCase() === location.toLowerCase()
+        )
+      );
+    }
 
     return res.json({
       success: true,
-      totalLeads: allLeads.length,
-      data: allLeads, // remove later if only count needed
+      totalLeads: filteredLeads.length,
     });
 
   } catch (error) {
@@ -99,7 +108,6 @@ router.get('/total-leads', async (req, res) => {
     });
   }
 });
-
 
 router.get('/appointments', async (req, res) => {
   try {
@@ -124,15 +132,23 @@ router.get('/appointments', async (req, res) => {
 
 router.get('/memberships-closed', async (req, res) => {
   try {
+    const { location } = req.query;
     const memberships = await closeAPIRequest('/opportunity/', {
       _limit: 100,
       status_type: 'won'
     });
+    let filteredMemberships = memberships.data;
+
+    // Filter by pipeline_name if location is passed
+    if (location && location !== "All") {
+      filteredMemberships = filteredMemberships.filter(
+        opp => opp?.pipeline_name?.toLowerCase() === location.toLowerCase()
+      );
+    }
 
     return res.json({
       success: true,
-      membershipsClosed: memberships.data.length,
-      data: memberships.data
+      membershipsClosed: filteredMemberships.length,
     });
   } catch (error) {
     return res.status(500).json({
