@@ -78,37 +78,56 @@ const Dashboard = () => {
       leadSource: filters?.leadSource ?? selectedLeadSource,
       funnelType: filters?.funnelType ?? selectedFunnelType,
     };
-    if (!data) {
-      setInitialLoading(true);
-    } else {
-      setRefreshing(true);
-    }
+
+    if (!data) setInitialLoading(true);
+    else setRefreshing(true);
+
     setLoadingProgress(0);
 
     try {
-      const totalAPIs = 7; // Total number of API calls
+      const totalAPIs = 6; // 6 endpoints now
       let completed = 0;
 
       const updateProgress = () => {
         completed++;
         setLoadingProgress((completed / totalAPIs) * 100);
       };
+
       const query = new URLSearchParams({
         location: effectiveFilters.location || "All",
         leadSource: effectiveFilters.leadSource || "All",
         funnelType: effectiveFilters.funnelType || "All",
       }).toString();
 
-      const [leadsRes, appointmentsRes, membershipsRes, breakdownRes, locationsRes, funnelTypesRes, leadSourcesRes] =
-        await Promise.all([
-          fetch(`${API_BASE_URL}/total-leads?${query}`).then(r => r.json()).then(d => { updateProgress(); return d; }),
-          fetch(`${API_BASE_URL}/appointments`).then(r => r.json()).then(d => { updateProgress(); return d; }),
-          fetch(`${API_BASE_URL}/memberships-closed?${query}`).then(r => r.json()).then(d => { updateProgress(); return d; }),
-          fetch(`${API_BASE_URL}/membership-breakdown`).then(r => r.json()).then(d => { updateProgress(); return d; }),
-          fetch(`${API_BASE_URL}/locations`).then(r => r.json()).then(d => { updateProgress(); return d; }),
-          fetch(`${API_BASE_URL}/funnel-types`).then(r => r.json()).then(d => { updateProgress(); return d; }),
-          fetch(`${API_BASE_URL}/lead-sources`).then(r => r.json()).then(d => { updateProgress(); return d; }),
-        ]);
+      const [
+        leadsRes,
+        appointmentsRes,
+        membershipsRes,
+        locationsRes,
+        funnelTypesRes,
+        leadSourcesRes,
+      ] = await Promise.all([
+        fetch(`${API_BASE_URL}/total-leads?${query}`).then((r) => r.json()).then(d => { updateProgress(); return d; }),
+        fetch(`${API_BASE_URL}/appointments`).then((r) => r.json()).then(d => { updateProgress(); return d; }),
+        fetch(`${API_BASE_URL}/memberships-closed?${query}`).then((r) => r.json()).then(d => { updateProgress(); return d; }),
+        fetch(`${API_BASE_URL}/locations`).then((r) => r.json()).then(d => { updateProgress(); return d; }),
+        fetch(`${API_BASE_URL}/funnel-types`).then((r) => r.json()).then(d => { updateProgress(); return d; }),
+        fetch(`${API_BASE_URL}/lead-sources`).then((r) => r.json()).then(d => { updateProgress(); return d; }),
+      ]);
+
+      // ✅ BUILD BREAKDOWN FROM MEMBERSHIPS
+      const breakdownMap: Record<string, number> = {};
+
+      (membershipsRes.data || []).forEach((m: any) => {
+        const rawValue = m.value || 0;
+        const price = `$${Number(rawValue).toLocaleString()}`;
+
+        breakdownMap[price] = (breakdownMap[price] || 0) + 1;
+      });
+
+      const computedBreakdown = Object.entries(breakdownMap).map(
+        ([price, count]) => ({ price, count })
+      );
 
       const dashboardData: DashboardData = {
         totals: {
@@ -117,7 +136,9 @@ const Dashboard = () => {
           membershipsClosed: membershipsRes.success ? membershipsRes.membershipsClosed : 0,
           insuranceOnly: 0,
         },
-        membershipBreakdown: breakdownRes.success ? breakdownRes.breakdown : [],
+
+        membershipBreakdown: computedBreakdown,
+
         filters: {
           locations: locationsRes.success ? locationsRes.locations : [],
           leadSources: leadSourcesRes.success ? leadSourcesRes.uniqueValues : [],
@@ -140,7 +161,6 @@ const Dashboard = () => {
     setSelectedFunnelType("All");
   };
 
-
   useEffect(() => {
     fetchData({
       location: selectedLocation,
@@ -150,115 +170,97 @@ const Dashboard = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedLocation, selectedLeadSource, selectedFunnelType]);
 
-  // useEffect(() => {
-  //   fetchData();
-  // }, []);
-
   if (initialLoading || !data) {
     return <LoadingAnimation progress={loadingProgress} />;
   }
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
-
-      {/* Header */}
+      {/* HEADER */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Clinic Performance Dashboard</h1>
+          <h1 className="text-3xl font-bold">Clinic Performance Dashboard</h1>
           <p className="text-gray-600">Powered by Close CRM</p>
         </div>
 
         <div className="flex gap-2">
-          <Button onClick={() => fetchData()} className="text-redcustom border-redcustom" variant="outline" disabled={refreshing}>
-            <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-            {refreshing ? 'Refreshing...' : 'Refresh'}
+          <Button onClick={() => fetchData()} variant="outline" disabled={refreshing}>
+            <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? "animate-spin" : ""}`} />
+            {refreshing ? "Refreshing..." : "Refresh"}
           </Button>
+
           <Button className="bg-redcustom text-whitecustom">
             <Download className="w-4 h-4 mr-2" /> Export
           </Button>
         </div>
       </div>
 
-      {/* Filters */}
+      {/* FILTERS */}
       <Card>
         <CardContent className="pt-6 flex flex-wrap gap-4">
-          {/* Location */}
           <Select value={selectedLocation} onValueChange={setSelectedLocation}>
-            <SelectTrigger className="w-[200px] border-gray-300">
+            <SelectTrigger className="w-[200px]">
               <SelectValue placeholder="Location" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="All">All</SelectItem>
               {data.filters.locations.map((loc) => (
-                <SelectItem key={loc} value={loc}>{loc}</SelectItem>
+                <SelectItem key={loc} value={loc}>
+                  {loc}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
 
-
-          {/* Lead Source */}
           <Select value={selectedLeadSource} onValueChange={setSelectedLeadSource}>
-            <SelectTrigger className="w-[200px] border-gray-300">
+            <SelectTrigger className="w-[200px]">
               <SelectValue placeholder="Lead Source" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="All">All</SelectItem>
               {data.filters.leadSources.map((f) => (
-                <SelectItem key={f} value={f}>{f}</SelectItem>
+                <SelectItem key={f} value={f}>
+                  {f}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
 
-          {/* Funnel Type */}
           <Select value={selectedFunnelType} onValueChange={setSelectedFunnelType}>
-            <SelectTrigger className="w-[200px] border-gray-300">
+            <SelectTrigger className="w-[200px]">
               <SelectValue placeholder="Funnel Type" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="All">All</SelectItem>
               {data.filters.funnelTypes.map((f) => (
-                <SelectItem key={f} value={f}>{f}</SelectItem>
+                <SelectItem key={f} value={f}>
+                  {f}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
+
           <Button variant="outline" onClick={clearFilters}>
             Clear Filters
           </Button>
-
         </CardContent>
       </Card>
 
       {/* KPI CARDS */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="border-l-4 border-l-redcustom">
-          <CardHeader><CardTitle>Total Leads</CardTitle></CardHeader>
-          <CardContent><div className="text-3xl font-bold">{data.totals.totalLeads}</div></CardContent>
-        </Card>
-
-        <Card className="border-l-4 border-l-redcustom">
-          <CardHeader><CardTitle>Appointments Booked</CardTitle></CardHeader>
-          <CardContent><div className="text-3xl font-bold">{data.totals.appointmentsBooked}</div></CardContent>
-        </Card>
-
-        <Card className="border-l-4 border-l-redcustom">
-          <CardHeader><CardTitle>Memberships Closed</CardTitle></CardHeader>
-          <CardContent><div className="text-3xl font-bold">{data.totals.membershipsClosed}</div></CardContent>
-        </Card>
-
-        <Card className="border-l-4 border-l-redcustom">
-          <CardHeader><CardTitle>Insurance-Only Patients</CardTitle></CardHeader>
-          <CardContent><div className="text-3xl font-bold">{data.totals.insuranceOnly}</div></CardContent>
-        </Card>
+        <Card><CardHeader><CardTitle>Total Leads</CardTitle></CardHeader><CardContent className="text-3xl font-bold">{data.totals.totalLeads}</CardContent></Card>
+        <Card><CardHeader><CardTitle>Appointments Booked</CardTitle></CardHeader><CardContent className="text-3xl font-bold">{data.totals.appointmentsBooked}</CardContent></Card>
+        <Card><CardHeader><CardTitle>Memberships Closed</CardTitle></CardHeader><CardContent className="text-3xl font-bold">{data.totals.membershipsClosed}</CardContent></Card>
+        <Card><CardHeader><CardTitle>Insurance-Only Patients</CardTitle></CardHeader><CardContent className="text-3xl font-bold">{data.totals.insuranceOnly}</CardContent></Card>
       </div>
 
-      {/* Membership Breakdown (Pie + Bar) */}
+      {/* CHARTS */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-        {/* Pie Chart */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <PieIcon className="w-5 h-5" /> Membership Breakdown
+              <PieIcon className="w-5 h-5" />
+              Membership Breakdown
             </CardTitle>
           </CardHeader>
 
@@ -284,11 +286,11 @@ const Dashboard = () => {
           </CardContent>
         </Card>
 
-        {/* Bar Chart */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <BarChart3 className="w-5 h-5" /> Membership Sales Volume
+              <BarChart3 className="w-5 h-5" />
+              Membership Sales Volume
             </CardTitle>
           </CardHeader>
 
@@ -305,7 +307,6 @@ const Dashboard = () => {
             </ResponsiveContainer>
           </CardContent>
         </Card>
-
       </div>
     </div>
   );

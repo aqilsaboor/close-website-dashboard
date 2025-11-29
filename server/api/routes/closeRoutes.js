@@ -121,6 +121,7 @@ router.get('/total-leads', async (req, res) => {
     return res.json({
       success: true,
       totalLeads: filteredLeads.length,
+      data: filteredLeads,
     });
 
   } catch (error) {
@@ -188,6 +189,7 @@ router.get('/memberships-closed', async (req, res) => {
     return res.json({
       success: true,
       membershipsClosed: filteredMemberships.length,
+      data: filteredMemberships,
     });
   } catch (error) {
     return res.status(500).json({
