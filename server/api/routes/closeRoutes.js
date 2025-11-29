@@ -155,7 +155,7 @@ router.get('/appointments', async (req, res) => {
 
 router.get('/memberships-closed', async (req, res) => {
   try {
-    const { location } = req.query;
+    const { location, leadSource, funnelType } = req.query;
     const memberships = await closeAPIRequest('/opportunity/', {
       _limit: 100,
       status_type: 'won'
@@ -165,6 +165,23 @@ router.get('/memberships-closed', async (req, res) => {
     if (location && location !== "All") {
       filteredMemberships = filteredMemberships.filter(
         opp => opp?.pipeline_name?.toLowerCase() === location.toLowerCase()
+      );
+    }
+
+    if (leadSource && leadSource !== "All") {
+      filteredMemberships = filteredMemberships.filter(op =>
+        (op["custom.cf_IlDxYq6z1N5djnZtgsAxWRHuNIKzd10fe1t3fDAMiPX"] || "")
+          .trim()
+          .toLowerCase() === leadSource.trim().toLowerCase()
+      );
+    }
+
+    // Filter by funnel type
+    if (funnelType && funnelType !== "All") {
+      filteredMemberships = filteredMemberships.filter(op =>
+        (op["custom.cf_lHXCz96zGWThc3ojIl0Wcld64fJv7tnzkHSnTmALQPq"] || "")
+          .trim()
+          .toLowerCase() === funnelType.trim().toLowerCase()
       );
     }
 
@@ -180,6 +197,29 @@ router.get('/memberships-closed', async (req, res) => {
     });
   }
 });
+
+// Test: fetch only 1 opportunity from Close CRM
+router.get("/test-opportunity", async (req, res) => {
+  try {
+    const response = await closeAPIRequest("/opportunity/", {
+      _limit: 1,   // ✅ fetch only one record
+    });
+
+    return res.json({
+      success: true,
+      count: response?.data?.length || 0,
+      opportunity: response?.data?.[0] || null,
+    });
+
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      error: "Failed to fetch test opportunity",
+      message: error.message,
+    });
+  }
+});
+
 
 router.get("/funnel-types", async (req, res) => {
   try {

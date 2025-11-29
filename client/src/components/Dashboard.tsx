@@ -146,7 +146,7 @@ const Dashboard = () => {
       <Card>
         <CardContent className="pt-6 flex flex-wrap gap-4">
           {/* Location */}
-          <Select value={selectedLocation} onValueChange={setSelectedLocation}>
+          <Select onValueChange={setSelectedLocation}>
             <SelectTrigger className="w-[200px] border-gray-300">
               <SelectValue placeholder="Location" />
             </SelectTrigger>
