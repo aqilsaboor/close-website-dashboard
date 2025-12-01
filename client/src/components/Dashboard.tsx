@@ -38,7 +38,7 @@ import {
 } from "recharts";
 import LoadingAnimation from "./LoadingAnimation";
 
-const API_BASE_URL = "http://localhost:5000/api/close";
+const API_BASE_URL = import.meta.env.VITE_BASE_URL;
 
 const COLORS = ["#880015", "#B8001F", "#E60026", "#FF3347", "#FF6B7A"];
 
