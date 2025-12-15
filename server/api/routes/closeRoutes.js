@@ -200,6 +200,64 @@ router.get('/memberships-closed', async (req, res) => {
   }
 });
 
+router.get('/appointment-insurance-stats', async (req, res) => {
+  try {
+    const { location, leadSource, funnelType, type } = req.query;
+
+    // Fetch all opportunities
+    const allOpportunities = await fetchAllCloseRecords('/opportunity/', 200);
+
+    let filteredOpportunities = allOpportunities;
+
+    // Filter by location (pipeline)
+    if (location && location !== "All") {
+      filteredOpportunities = filteredOpportunities.filter(
+        opp => opp?.pipeline_name?.toLowerCase() === location.toLowerCase()
+      );
+    }
+
+    // Filter by lead source
+    if (leadSource && leadSource !== "All") {
+      filteredOpportunities = filteredOpportunities.filter(op =>
+        (op["custom.cf_IlDxYq6z1N5djnZtgsAxWRHuNIKzd10fe1t3fDAMiPX"] || "")
+          .trim()
+          .toLowerCase() === leadSource.trim().toLowerCase()
+      );
+    }
+
+    // Filter by funnel type
+    if (funnelType && funnelType !== "All") {
+      filteredOpportunities = filteredOpportunities.filter(op =>
+        (op["custom.cf_lHXCz96zGWThc3ojIl0Wcld64fJv7tnzkHSnTmALQPq"] || "")
+          .trim()
+          .toLowerCase() === funnelType.trim().toLowerCase()
+      );
+    }
+
+    // Counting logic
+    let count = 0;
+    if (type === "appointments") {
+      count = filteredOpportunities.filter(op => op.status_label === 'Pre-Appointment').length;
+    } else if (type === "insurance") {
+      count = filteredOpportunities.filter(op => op.status_label === 'Won - Insurance Only').length;
+    }
+
+    return res.json({
+      success: true,
+      type,
+      count,
+    });
+
+  } catch (error) {
+    console.error('Opportunity Stats Error:', error.message);
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to fetch opportunity stats',
+      message: error.message
+    });
+  }
+});
+
 router.get("/funnel-types", async (req, res) => {
   try {
     const leads = await fetchAllCloseRecords('/lead/', 200); // already array

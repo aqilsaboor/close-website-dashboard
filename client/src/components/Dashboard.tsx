@@ -87,7 +87,7 @@ const Dashboard = () => {
     setLoadingProgress(0);
 
     try {
-      const totalAPIs = 6; // 6 endpoints now
+      const totalAPIs = 7; // 6 endpoints now
       let completed = 0;
 
       const updateProgress = () => {
@@ -104,13 +104,15 @@ const Dashboard = () => {
       const [
         leadsRes,
         appointmentsRes,
+        insuranceRes,
         membershipsRes,
         locationsRes,
         funnelTypesRes,
         leadSourcesRes,
       ] = await Promise.all([
         fetch(`${API_BASE_URL}/total-leads?${query}`).then((r) => r.json()).then(d => { updateProgress(); return d; }),
-        fetch(`${API_BASE_URL}/appointments`).then((r) => r.json()).then(d => { updateProgress(); return d; }),
+        fetch(`${API_BASE_URL}/appointment-insurance-stats?${query}&type=appointments`).then((r) => r.json()).then(d => { updateProgress(); return d; }),
+        fetch(`${API_BASE_URL}/appointment-insurance-stats?${query}&type=insurance`).then((r) => r.json()).then(d => { updateProgress(); return d; }),
         fetch(`${API_BASE_URL}/memberships-closed?${query}`).then((r) => r.json()).then(d => { updateProgress(); return d; }),
         fetch(`${API_BASE_URL}/locations`).then((r) => r.json()).then(d => { updateProgress(); return d; }),
         fetch(`${API_BASE_URL}/funnel-types`).then((r) => r.json()).then(d => { updateProgress(); return d; }),
@@ -134,9 +136,9 @@ const Dashboard = () => {
       const dashboardData: DashboardData = {
         totals: {
           totalLeads: leadsRes.success ? leadsRes.totalLeads : 0,
-          appointmentsBooked: appointmentsRes.success ? appointmentsRes.appointmentsBooked : 0,
+          appointmentsBooked: appointmentsRes.success ? appointmentsRes.count : 0,
           membershipsClosed: membershipsRes.success ? membershipsRes.membershipsClosed : 0,
-          insuranceOnly: 0,
+          insuranceOnly: insuranceRes.success ? insuranceRes.count : 0,
         },
 
         membershipBreakdown: computedBreakdown,
