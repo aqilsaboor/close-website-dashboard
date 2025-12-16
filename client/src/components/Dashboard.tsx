@@ -5,6 +5,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -61,6 +62,8 @@ type FilterParams = {
   location?: string;
   leadSource?: string;
   funnelType?: string;
+  fromDate?: string;
+  toDate?: string;
 };
 
 const Dashboard = () => {
@@ -68,6 +71,10 @@ const Dashboard = () => {
   const [initialLoading, setInitialLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [loadingProgress, setLoadingProgress] = useState(0);
+
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
+
 
   // Filters
   const [selectedLocation, setSelectedLocation] = useState("All");
@@ -80,6 +87,9 @@ const Dashboard = () => {
       leadSource: filters?.leadSource ?? selectedLeadSource,
       funnelType: filters?.funnelType ?? selectedFunnelType,
     };
+
+    const effectiveFromDate = filters?.fromDate ?? fromDate;
+    const effectiveToDate = filters?.toDate ?? toDate;
 
     if (!data) setInitialLoading(true);
     else setRefreshing(true);
@@ -99,6 +109,8 @@ const Dashboard = () => {
         location: effectiveFilters.location || "All",
         leadSource: effectiveFilters.leadSource || "All",
         funnelType: effectiveFilters.funnelType || "All",
+        ...(effectiveFromDate && { fromDate: effectiveFromDate }),
+        ...(effectiveToDate && { toDate: effectiveToDate }),
       }).toString();
 
       const [
@@ -163,6 +175,15 @@ const Dashboard = () => {
     setSelectedLocation("All");
     setSelectedLeadSource("All");
     setSelectedFunnelType("All");
+    setFromDate("");
+  setToDate("");
+  fetchData({
+    location: "All",
+    leadSource: "All",
+    funnelType: "All",
+    fromDate: "",
+    toDate: "",
+  })
   };
 
   useEffect(() => {
@@ -249,6 +270,34 @@ const Dashboard = () => {
               ))}
             </SelectContent>
           </Select>
+
+          <div className="flex flex-col gap-1">
+  <Label htmlFor="fromDate">From Date</Label>
+  <input
+    id="fromDate"
+    type="date"
+    value={fromDate}
+    onChange={(e) => setFromDate(e.target.value)}
+    className="border rounded-md px-3 py-2 text-sm"
+  />
+</div>
+
+<div className="flex flex-col gap-1">
+  <Label htmlFor="toDate">To Date</Label>
+  <input
+    id="toDate"
+    type="date"
+    value={toDate}
+    onChange={(e) => setToDate(e.target.value)}
+    className="border rounded-md px-3 py-2 text-sm"
+  />
+</div>
+
+
+          <Button onClick={() => fetchData()} disabled={fromDate==="" && toDate===""}>
+            Set
+          </Button>
+
 
           <Button variant="outline" onClick={clearFilters}>
             Clear Filters

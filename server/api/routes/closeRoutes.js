@@ -45,6 +45,18 @@ const fetchAllCloseRecords = async (endpoint, limit = 200) => {
   return allData;
 };
 
+const isWithinDateRange = (dateStr, fromDate, toDate) => {
+  if (!dateStr) return false;
+
+  const created = new Date(dateStr);
+
+  if (fromDate && created < fromDate) return false;
+  if (toDate && created > toDate) return false;
+
+  return true;
+};
+
+
 router.get("/locations", async (req, res) => {
   try {
     const pipelines = await fetchAllCloseRecords("/pipeline/");
@@ -83,9 +95,12 @@ router.get('/dashboard-data', async (req, res) => {
 
 router.get('/total-leads', async (req, res) => {
   try {
-    const { location, leadSource, funnelType } = req.query;
+    const { location, leadSource, funnelType, fromDate, toDate } = req.query;
     const allLeads = await fetchAllCloseRecords('/lead/', 200);
     let filteredLeads = allLeads;
+
+    const from = fromDate ? new Date(fromDate) : null;
+const to = toDate ? new Date(toDate) : null;
 
     // Filter by location (pipeline_name)
     if (location && location !== "All") {
@@ -118,6 +133,12 @@ router.get('/total-leads', async (req, res) => {
       );
     }
 
+    if (from || to) {
+  filteredLeads = filteredLeads.filter(lead =>
+    isWithinDateRange(lead.date_created, from, to)
+  );
+}
+
     return res.json({
       success: true,
       totalLeads: filteredLeads.length,
@@ -132,6 +153,29 @@ router.get('/total-leads', async (req, res) => {
     });
   }
 });
+
+router.get('/test-single-lead', async (req, res) => {
+  try {
+    const response = await closeAPIRequest('/lead/', {
+      _limit: 1,
+      _skip: 0
+    });
+
+    return res.json({
+      success: true,
+      lead: response?.data?.[0],
+    });
+
+  } catch (error) {
+    console.error('Test Single Lead Error:', error.message);
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to fetch single lead',
+      message: error.message
+    });
+  }
+});
+
 
 router.get('/appointments', async (req, res) => {
   try {
@@ -156,12 +200,14 @@ router.get('/appointments', async (req, res) => {
 
 router.get('/memberships-closed', async (req, res) => {
   try {
-    const { location, leadSource, funnelType } = req.query;
+    const { location, leadSource, funnelType, fromDate, toDate } = req.query;
     const memberships = await closeAPIRequest('/opportunity/', {
       _limit: 100,
       status_type: 'won'
     });
     let filteredMemberships = memberships.data;
+    const from = fromDate ? new Date(fromDate) : null;
+const to = toDate ? new Date(toDate) : null;
 
     if (location && location !== "All") {
       filteredMemberships = filteredMemberships.filter(
@@ -186,6 +232,12 @@ router.get('/memberships-closed', async (req, res) => {
       );
     }
 
+    if (from || to) {
+  filteredMemberships = filteredMemberships.filter(op =>
+    isWithinDateRange(op.date_created, from, to)
+  );
+}
+
     return res.json({
       success: true,
       membershipsClosed: filteredMemberships.length,
@@ -202,12 +254,15 @@ router.get('/memberships-closed', async (req, res) => {
 
 router.get('/appointment-insurance-stats', async (req, res) => {
   try {
-    const { location, leadSource, funnelType, type } = req.query;
+    const { location, leadSource, funnelType, type, fromDate, toDate } = req.query;
 
     // Fetch all opportunities
     const allOpportunities = await fetchAllCloseRecords('/opportunity/', 200);
 
     let filteredOpportunities = allOpportunities;
+
+    const from = fromDate ? new Date(fromDate) : null;
+const to = toDate ? new Date(toDate) : null;
 
     // Filter by location (pipeline)
     if (location && location !== "All") {
@@ -233,6 +288,12 @@ router.get('/appointment-insurance-stats', async (req, res) => {
           .toLowerCase() === funnelType.trim().toLowerCase()
       );
     }
+
+    if (from || to) {
+  filteredOpportunities = filteredOpportunities.filter(op =>
+    isWithinDateRange(op.date_created, from, to)
+  );
+}
 
     // Counting logic
     let count = 0;
