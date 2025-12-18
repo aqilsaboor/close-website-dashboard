@@ -353,19 +353,23 @@ const Dashboard = () => {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <BarChart3 className="w-5 h-5" />
-              Membership Sales Volume
+              Leads by Location
             </CardTitle>
           </CardHeader>
 
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={data.membershipBreakdown}>
+              <BarChart data={data.leadsByLocation || []}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="price" />
-                <YAxis />
+                <XAxis dataKey="name"/>
+                <YAxis allowDecimals={false} />
                 <Tooltip />
                 <Legend />
-                <Bar dataKey="count" fill="#880015" />
+                <Bar dataKey="value" name="Leads">
+                  {(data.leadsByLocation ?? []).map((_, i) => (
+                    <Cell key={`cell-${i}`} fill={COLORS[i % COLORS.length]} />
+                  ))}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
