@@ -150,7 +150,7 @@ const Dashboard = () => {
         fetch(`${API_BASE_URL}/locations-filtered`).then((r) => r.json()).then(d => { updateProgress(); return d; }),
         fetch(`${API_BASE_URL}/funnel-types`).then((r) => r.json()).then(d => { updateProgress(); return d; }),
         fetch(`${API_BASE_URL}/lead-sources`).then((r) => r.json()).then(d => { updateProgress(); return d; }),
-        fetch(`${API_BASE_URL}/leads-by-location`).then((r) => r.json()).then(d => { updateProgress(); return d; }),
+        fetch(`${API_BASE_URL}/leads-by-location-with-filter?${query}`).then((r) => r.json()).then(d => { updateProgress(); return d; }),
         fetch(`${API_BASE_URL}/opportunities-status-count?${query}`).then(r => r.json()).then(d => { updateProgress(); return d }),
       ]);
 

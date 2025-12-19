@@ -218,6 +218,97 @@ const to = toDate ? new Date(toDate) : null;
   }
 });
 
+router.get("/leads-by-location-with-filter", async (req, res) => {
+  try {
+    const { location, leadSource, funnelType, fromDate, toDate } = req.query;
+
+    const allLeads = await fetchAllCloseRecords("/lead/");
+    const pipelines = await fetchAllCloseRecords("/pipeline/");
+
+    const allowedLocations = [
+      "Green Bay Sales",
+      "Barrington Sales",
+      "Greenwood Sales",
+    ];
+
+    const from = fromDate ? new Date(fromDate) : null;
+    const to = toDate ? new Date(toDate) : null;
+
+    // Step 1: Filter leads SAME AS total-leads
+    let filteredLeads = allLeads;
+
+    // Location filter (only if explicitly selected)
+    if (location && location !== "All") {
+      filteredLeads = filteredLeads.filter(lead =>
+        lead?.opportunities?.some(op =>
+          op?.pipeline_name?.toLowerCase() === location.toLowerCase()
+        )
+      );
+    }
+
+    // Lead Source filter
+    if (leadSource && leadSource !== "All") {
+      filteredLeads = filteredLeads.filter(lead =>
+        lead?.opportunities?.some(op =>
+          (op["custom.cf_IlDxYq6z1N5djnZtgsAxWRHuNIKzd10fe1t3fDAMiPX"] || "")
+            .trim()
+            .toLowerCase() === leadSource.trim().toLowerCase()
+        )
+      );
+    }
+
+    // Funnel / Tags filter
+    if (funnelType && funnelType !== "All") {
+      filteredLeads = filteredLeads.filter(lead =>
+        lead?.opportunities?.some(op =>
+          (op["custom.cf_lHXCz96zGWThc3ojIl0Wcld64fJv7tnzkHSnTmALQPq"] || "")
+            .trim()
+            .toLowerCase() === funnelType.trim().toLowerCase()
+        )
+      );
+    }
+
+    // Date filter
+    if (from || to) {
+      filteredLeads = filteredLeads.filter(lead =>
+        isWithinDateRange(lead.date_created, from, to)
+      );
+    }
+
+    // Step 2: Prepare ONLY allowed locations
+    const uniqueLocations = [
+      ...new Set(
+        pipelines
+          .map(p => p.name)
+          .filter(name => allowedLocations.includes(name))
+      ),
+    ];
+
+    // Step 3: Aggregate counts per location
+    const leadsByLocation = uniqueLocations.map(loc => ({
+      name: loc,
+      value: filteredLeads.filter(lead =>
+        lead?.opportunities?.some(op =>
+          op?.pipeline_name?.toLowerCase() === loc.toLowerCase()
+        )
+      ).length,
+    }));
+
+    res.json({
+      success: true,
+      data: leadsByLocation,
+    });
+
+  } catch (err) {
+    console.error("Error in leads-by-location:", err.message);
+    res.status(500).json({
+      success: false,
+      message: err.message,
+    });
+  }
+});
+
+
 router.get('/test-single-lead', async (req, res) => {
   try {
     const response = await closeAPIRequest('/lead/', {
