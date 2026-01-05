@@ -500,6 +500,10 @@ router.get('/appointment-insurance-stats', async (req, res) => {
     const from = fromDate ? new Date(fromDate) : null;
     const to = toDate ? new Date(toDate) : null;
 
+    if(to){
+      to.setHours(23,59,59,999);
+    }
+
     // Filter by location (pipeline)
     if (location && location !== "All") {
       filteredOpportunities = filteredOpportunities.filter(
@@ -538,7 +542,7 @@ router.get('/appointment-insurance-stats', async (req, res) => {
         'Pre-Appointment',
         'Showed-Pending',
         'Won - Insurance Only',
-        'Close-Won'
+        'Close-Lost'
       ];
 
       count = filteredOpportunities.filter(op =>
